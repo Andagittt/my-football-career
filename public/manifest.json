@@ -1,0 +1,25 @@
+{
+  "short_name": "mfc",
+  "name": "My Football Career",
+  "icons": [
+    {
+      "src": "mfc-logo.svg",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "mfc-logo.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192"
+    },
+    {
+      "src": "mfc-logo.svg",
+      "type": "image/svg+xml",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#0D0E12",
+  "background_color": "#0D0E12"
+}
