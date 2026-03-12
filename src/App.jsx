@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 // FIREBASE IMPORTI
-import { db, auth, provider } from './firebase'; 
+import { db, auth, provider } from './firebase';
 import { doc, onSnapshot, setDoc, collection, deleteDoc } from "firebase/firestore";
 import { 
   signInWithEmailAndPassword, 
@@ -20,7 +20,7 @@ function App() {
   // --- TVOJI UI STATES ---
   const [activeTab, setActiveTab] = useState('home');
   const [isEditing, setIsEditing] = useState(false);
-  const [showAddMatch, setShowAddMatch] = useState(false); // Napomena: Zbog ranijeg zahtjeva, možeš je podesiti na 'true' ako želiš multi-add default otvoren
+  const [showAddMatch, setShowAddMatch] = useState(false); 
   const [editingMatchId, setEditingMatchId] = useState(null);
   const [matchFilter, setMatchFilter] = useState('all');
 
@@ -28,12 +28,10 @@ function App() {
   const [statsFilters, setStatsFilters] = useState({
     season: 'all', club: 'all', type: 'all', location: 'all', startDate: '', endDate: '', lastMatches: '' 
   });
-  
   // Filteri za Club Stats
   const [clubStatsFilters, setClubStatsFilters] = useState({
     season: 'all', location: 'all', type: 'all', startDate: '', endDate: '', lastMatches: '', myRole: 'all' 
   });
-  
   // Filter za League Table
   const [tableSeasonFilter, setTableSeasonFilter] = useState('2025/26');
 
@@ -45,16 +43,13 @@ function App() {
       jerseyNumber: "10", preferredFoot: "Right", marketValue: "500", mvUnit: "k",
       playerLevel: "Amateur"
   });
-
   // --- CLUB DATA ---
   const [clubInfo, setClubInfo] = useState({
       name: "Your Club", location: "City Name", coach: "Coach Name", stadium: "Stadium Name",
       season: "2025/26", league: "League Name"
   });
-
   const [leagueTable, setLeagueTable] = useState([]);
   const [matches, setMatches] = useState([]);
-  
   const [upcoming, setUpcoming] = useState({ 
       homeTeam: "Your Club", awayTeam: "Opponent", date: "", stadium: "" 
   });
@@ -104,7 +99,7 @@ function App() {
   };
 
   // ---------------------------------------------------------
-  // HELPERS (Netaknuto tvoje)
+  // HELPERS
   // ---------------------------------------------------------
   const parseDate = (str) => {
     if(!str) return new Date(0);
@@ -151,13 +146,11 @@ function App() {
     seasons.push(`${start}/${end}`);
   }
 
-  // --- ACTIONS (Povezane na Firebase) ---
+  // --- ACTIONS ---
   const handleSaveMatch = async () => {
     if (!newMatch.homeTeam || !newMatch.awayTeam || !user) return;
     const id = editingMatchId ? editingMatchId.toString() : Date.now().toString();
-    
     await setDoc(doc(db, `users/${user.uid}/matches`, id), { ...newMatch, id });
-    
     setNewMatch({ 
         homeTeam: "", awayTeam: "", stadium: "", referee: "", score: "", 
         myGoals: "", myAssists: "", yellowCards: "", redCards: "", minutesPlayed: "", notes: "", 
@@ -183,11 +176,9 @@ function App() {
     const row = leagueTable.find(r => r.id === id);
     await setDoc(doc(db, `users/${user.uid}/leagueTable`, id.toString()), { ...row, [field]: value });
   };
-
   const deleteTableRow = async (id) => {
     if(window.confirm("Delete this team from table?")) await deleteDoc(doc(db, `users/${user.uid}/leagueTable`, id.toString()));
   };
-
   const addTableRow = async () => {
     const id = Date.now().toString();
     await setDoc(doc(db, `users/${user.uid}/leagueTable`, id), { id, name: "New Team", w: 0, d: 0, l: 0, gf: 0, ga: 0, season: tableSeasonFilter });
@@ -195,7 +186,7 @@ function App() {
 
   const handleMainSave = async () => { 
     if(!user) return;
-    await setDoc(doc(db, `users/${user.uid}/data`, "player"), player); 
+    await setDoc(doc(db, `users/${user.uid}/data`, "player"), player);
     await setDoc(doc(db, `users/${user.uid}/data`, "club"), clubInfo); 
     await setDoc(doc(db, `users/${user.uid}/data`, "upcoming"), upcoming); 
     setIsEditing(false); 
@@ -207,20 +198,16 @@ function App() {
     const mDate = parseDate(m.date);
     const start = clubStatsFilters.startDate ? parseDate(clubStatsFilters.startDate) : null;
     const end = clubStatsFilters.endDate ? parseDate(clubStatsFilters.endDate) : null;
-
     if (clubStatsFilters.season !== 'all' && m.season !== clubStatsFilters.season) return false;
     if (clubStatsFilters.location !== 'all' && m.location !== clubStatsFilters.location) return false;
     if (clubStatsFilters.type !== 'all' && m.matchType !== clubStatsFilters.type) return false;
-   
     if (start && mDate < start) return false;
     if (end && mDate > end) return false;
-
     if (clubStatsFilters.myRole === 'starter' && m.participation !== 'starter') return false;
     if (clubStatsFilters.myRole === 'sub' && m.participation !== 'substitute') return false;
     if (clubStatsFilters.myRole === 'played' && m.participation === 'none') return false;
     if (clubStatsFilters.myRole === 'captain' && !m.isCaptain) return false;
     if (clubStatsFilters.myRole === 'dnp' && m.participation !== 'none') return false;
-
     return true;
   });
 
@@ -233,7 +220,6 @@ function App() {
       if (m.outcome === 'win') acc.wins += 1;
       else if (m.outcome === 'draw') acc.draws += 1;
       else acc.losses += 1;
-
       const [h, a] = (m.score || "0-0").split('-').map(Number);
       if (!isNaN(h) && !isNaN(a)) {
         acc.goalsScored += (m.location === 'home' ? h : a);
@@ -246,27 +232,23 @@ function App() {
     return acc;
   }, { played: 0, wins: 0, draws: 0, losses: 0, goalsScored: 0, goalsConceded: 0, yellows: 0, reds: 0, cleanSheets: 0 });
 
-  // --- CAREER STATISTICS CALCULATION ---
+  // --- CAREER STATISTICS ---
   let filteredForStats = matches.filter(m => {
     if (m.status !== 'finished') return false;
     const mDate = parseDate(m.date);
     const start = statsFilters.startDate ? parseDate(statsFilters.startDate) : null;
     const end = statsFilters.endDate ? parseDate(statsFilters.endDate) : null;
-
     if (statsFilters.season !== 'all' && m.season !== statsFilters.season) return false;
     if (statsFilters.club !== 'all' && (m.homeTeam !== statsFilters.club && m.awayTeam !== statsFilters.club)) return false;
     if (statsFilters.type !== 'all' && m.matchType !== statsFilters.type) return false;
     if (statsFilters.location !== 'all' && m.location !== statsFilters.location) return false;
     if (start && mDate < start) return false;
     if (end && mDate > end) return false;
-
     return true;
   });
-
   if (statsFilters.lastMatches && Number(statsFilters.lastMatches) > 0) {
     filteredForStats = filteredForStats.slice(0, Number(statsFilters.lastMatches));
   }
-
   const stats = filteredForStats.reduce((acc, m) => {
     acc.goals += Number(m.myGoals || 0);
     acc.assists += Number(m.myAssists || 0);
@@ -279,14 +261,12 @@ function App() {
     if (m.participation === 'starter') acc.starts += 1;
     else if (m.participation === 'substitute') acc.offBench += 1;
     else acc.unused += 1;
-  
     return acc;
   }, { goals: 0, assists: 0, yellows: 0, reds: 0, minutes: 0, played: 0, ratingsSum: 0, captainCount: 0, starts: 0, offBench: 0, unused: 0 });
 
   const avgMinutes = stats.played > 0 ? (stats.minutes / stats.played).toFixed(1) : 0;
   const avgRating = stats.played > 0 ? (stats.ratingsSum / stats.played).toFixed(1) : 0;
   const minPerGoal = stats.goals > 0 ? (stats.minutes / stats.goals).toFixed(1) : 0;
-  
   const avgRatingLast5 = matches.filter(m => m.status === 'finished').slice(0, 5).length > 0 
     ? (matches.filter(m => m.status === 'finished').slice(0, 5).reduce((acc, m) => acc + Number(m.rating || 0), 0) / matches.filter(m => m.status === 'finished').slice(0, 5).length).toFixed(1)
     : "0.0";
@@ -295,11 +275,8 @@ function App() {
   const positions = ["GK", "RB", "CB", "LB", "RWB", "LWB", "CDM", "CM", "CAM", "RM", "LM", "RW", "LW", "CF", "ST"];
   const levels = ["Amateur", "Semi-Pro", "Professional"];
   const bootSizes = [];
-  for(let i=30; i<=50; i++) {
-    bootSizes.push(`${i}`, `${i} 1/3`, `${i}.5`, `${i} 2/3`);
-  }
+  for(let i=30; i<=50; i++) { bootSizes.push(`${i}`, `${i} 1/3`, `${i}.5`, `${i} 2/3`); }
 
-  // --- TABELA LOGIKA ---
   const filteredTableData = leagueTable.filter(row => row.season === tableSeasonFilter);
   const tableWithStats = filteredTableData.map(row => {
     const p = (row.w || 0) + (row.d || 0) + (row.l || 0);
@@ -312,26 +289,22 @@ function App() {
     if (b.gd !== a.gd) return b.gd - a.gd;
     return b.gf - a.gf;
   });
-
   const myClubIndex = sortedTable.findIndex(t => t.name.toLowerCase() === clubInfo.name.toLowerCase());
   const myClubPosition = myClubIndex !== -1 ? myClubIndex + 1 : '—';
-  
   const filteredMatches = matches.filter(m => {
     if (matchFilter === 'all') return true;
     if (matchFilter === 'finished' || matchFilter === 'upcoming') return m.status === matchFilter;
     return m.outcome === matchFilter;
   });
-  
   const uniqueClubs = Array.from(new Set(matches.flatMap(m => [m.homeTeam, m.awayTeam]).filter(Boolean)));
 
   // ---------------------------------------------------------
   // RENDER LOGIN EKRAN
   // ---------------------------------------------------------
   if (loading) return <div style={{background:'#0D0E12', height:'100vh', display:'flex', justifyContent:'center', alignItems:'center', color:'#3A86FF'}}>Učitavanje...</div>;
-
   if (!user) {
     return (
-      <div style={{background:'#0D0E12', height:'100vh', display:'flex', justifyContent:'center', alignItems:'center'}}>
+      <div style={{background:'#0D0E12', height:'100vh', display:'flex', justifyContent:'center', alignItems:'center', padding: '20px'}}>
         <div style={{...cardStyle, maxWidth:'400px', width:'100%', textAlign:'center'}}>
           <h2 style={{color:'#3A86FF', letterSpacing:'3px', fontSize:'12px'}}>MY FOOTBALL CAREER</h2>
           <h1 style={{margin:'20px 0'}}>{authMode === 'login' ? 'Prijava' : 'Registracija'}</h1>
@@ -350,13 +323,13 @@ function App() {
   }
 
   // ---------------------------------------------------------
-  // RENDER GLAVNA APLIKACIJA (Tvoj dizajn netaknut)
+  // RENDER GLAVNA APLIKACIJA
   // ---------------------------------------------------------
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#0D0E12', color: '#E0E0E0', fontFamily: '"Inter", sans-serif' }}>
+    <div className="app-container">
       
-      {/* SIDEBAR */}
-      <div style={{ width: '260px', backgroundColor: '#15171C', padding: '30px 20px', borderRight: '1px solid #252830', display: 'flex', flexDirection: 'column' }}>
+      {/* SIDEBAR (Sakriva se na mobilnom preko CSS-a ispod) */}
+      <div className="sidebar">
         <h2 style={{ fontSize: '14px', fontWeight: '900', letterSpacing: '3px', color: '#3A86FF', marginBottom: '40px', textAlign: 'center' }}>MY FOOTBALL CAREER</h2>
         <nav style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
           <MenuBtn label="Dashboard" active={activeTab === 'home'} onClick={() => setActiveTab('home')} icon="⬩" />
@@ -374,8 +347,6 @@ function App() {
           <MenuBtn label="Sponsors" active={activeTab === 'sponsors'} onClick={() => setActiveTab('sponsors')} icon="💎" />
           <MenuBtn label="Gallery" active={activeTab === 'gallery'} onClick={() => setActiveTab('gallery')} icon="📸" />
           <MenuBtn label="Friends" active={activeTab === 'friends'} onClick={() => setActiveTab('friends')} icon="👥" />
-          
-          {/* Dodat Account tab ispod svega na zahtjev */}
           <div style={{ marginTop: 'auto', paddingTop: '20px', borderTop: '1px solid #252830' }}>
             <MenuBtn label="Account" active={activeTab === 'account'} onClick={() => setActiveTab('account')} icon="🔐" />
             <MenuBtn label="Settings" active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} icon="⚙" />
@@ -384,14 +355,23 @@ function App() {
         </nav>
       </div>
 
-      <div style={{ flex: 1, padding: '40px 60px', overflowY: 'auto' }}>
+      {/* MOBILNA NAVIGACIJA (Prikazuje se samo na mobilnom) */}
+      <div className="mobile-nav">
+          <button onClick={() => setActiveTab('home')} style={{color: activeTab === 'home' ? '#3A86FF' : '#888'}}>⬩</button>
+          <button onClick={() => setActiveTab('profile')} style={{color: activeTab === 'profile' ? '#3A86FF' : '#888'}}>👤</button>
+          <button onClick={() => setActiveTab('matches')} style={{color: activeTab === 'matches' ? '#3A86FF' : '#888'}}>🏟</button>
+          <button onClick={() => setActiveTab('club')} style={{color: activeTab === 'club' ? '#3A86FF' : '#888'}}>🛡</button>
+          <button onClick={() => setActiveTab('stats')} style={{color: activeTab === 'stats' ? '#3A86FF' : '#888'}}>📊</button>
+      </div>
+
+      <div className="main-content">
         
         {/* DASHBOARD */}
         {activeTab === 'home' && (
           <div style={{ maxWidth: '1000px' }}>
             <h4 style={{ color: '#3A86FF', margin: 0, fontSize: '12px', letterSpacing: '1px' }}>OVERVIEW</h4>
             <h1 style={{ fontSize: '32px', margin: '5px 0' }}>Welcome back, {player.firstName}</h1>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '25px', marginTop: '30px' }}>
+            <div className="dashboard-grid">
               <div style={cardStyle}>
                 <div style={{display:'flex', justifyContent:'space-between'}}><label style={labelStyle}>Last Match</label><span style={{fontSize:'11px', color:'#3A86FF'}}>{matches[0] ? `${getDaysDiff(matches[0].date)} days ago` : 'No data'}</span></div>
                 {matches[0] ? <div style={{marginTop:'15px'}}><h2 style={{margin:0}}>{matches[0].homeTeam} {matches[0].score} {matches[0].awayTeam}</h2><p style={{fontSize:'12px', color:'#555'}}>{matches[0].stadium}</p></div> : <p>No matches yet.</p>}
@@ -418,9 +398,9 @@ function App() {
           <div style={{ maxWidth: '1000px' }}>
              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
               <div><h4 style={{ color: '#3A86FF', margin: 0, fontSize: '12px' }}>TEAM HUB</h4><h1>{clubInfo.name}</h1></div>
-              <button onClick={() => isEditing ? handleMainSave() : setIsEditing(true)} style={{ ...primaryBtn, border: isEditing ? '1px solid #3A86FF' : '1px solid #252830', color: isEditing ? '#3A86FF' : 'white' }}>{isEditing ? '💾 SAVE TO CLOUD' : '✎ EDIT CLUB'}</button>
+              <button onClick={() => isEditing ? handleMainSave() : setIsEditing(true)} style={{ ...primaryBtn, border: isEditing ? '1px solid #3A86FF' : '1px solid #252830', color: isEditing ? '#3A86FF' : 'white' }}>{isEditing ? '💾 SAVE' : '✎ EDIT'}</button>
             </div>
-            <div style={{...cardStyle, gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px', marginBottom: '30px', padding: '25px', borderLeft: '4px solid #3A86FF'}}>
+            <div className="profile-grid" style={{...cardStyle, marginBottom: '30px', padding: '25px', borderLeft: '4px solid #3A86FF'}}>
                 <ProfileField label="Club Name" value={clubInfo.name} edit={isEditing} onChange={(v) => setClubInfo({...clubInfo, name: v})} />
                 <ProfileField label="City" value={clubInfo.location} edit={isEditing} onChange={(v) => setClubInfo({...clubInfo, location: v})} />
                 <ProfileField label="Coach" value={clubInfo.coach} edit={isEditing} onChange={(v) => setClubInfo({...clubInfo, coach: v})} />
@@ -430,16 +410,15 @@ function App() {
                 <div style={fieldGroup}><label style={labelStyle}>League Position</label><p style={{...valueStyle, color: '#3A86FF', fontWeight: '900'}}>{myClubPosition}.</p></div>
                 <div style={fieldGroup}><label style={labelStyle}>Trend</label><p style={{...valueStyle, color: '#4CAF50'}}>Stable ▲</p></div>
             </div>
-
             <div style={{...cardStyle, gridTemplateColumns: '1fr', gap: '25px', marginBottom: '30px', padding: '25px', borderLeft: '4px solid #3A86FF'}}>
                 <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}><h3 style={{margin: 0, fontSize: '14px', letterSpacing: '1px'}}>PERFORMANCE</h3></div>
-                <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px', backgroundColor: '#1C1F26', padding: '20px', borderRadius: '12px'}}>
+                <div className="stats-filter-grid">
                     <div style={fieldGroup}><label style={labelStyle}>Season</label><select style={inputStyle} value={clubStatsFilters.season} onChange={e => setClubStatsFilters({...clubStatsFilters, season: e.target.value})}><option value="all">All Seasons</option>{seasons.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
                     <div style={fieldGroup}><label style={labelStyle}>Location</label><select style={inputStyle} value={clubStatsFilters.location} onChange={e => setClubStatsFilters({...clubStatsFilters, location: e.target.value})}><option value="all">Home & Away</option><option value="home">Home</option><option value="away">Away</option></select></div>
                     <div style={fieldGroup}><label style={labelStyle}>Type</label><select style={inputStyle} value={clubStatsFilters.type} onChange={e => setClubStatsFilters({...clubStatsFilters, type: e.target.value})}><option value="all">All Competitions</option><option value="league">League</option><option value="cup">Cup</option><option value="friendly">Friendly</option></select></div>
                     <div style={fieldGroup}><label style={labelStyle}>My Role In Team</label><select style={inputStyle} value={clubStatsFilters.myRole} onChange={e => setClubStatsFilters({...clubStatsFilters, myRole: e.target.value})}><option value="all">Any Status</option><option value="starter">As Starter</option><option value="sub">From the bench</option><option value="played">Played (All)</option><option value="captain">As Captain</option><option value="dnp">Did Not Play</option></select></div>
                 </div>
-                <div style={{display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '15px', textAlign: 'center'}}>
+                <div className="stats-circles-grid">
                     <div style={{padding: '15px', background: '#0D0E12', borderRadius: '10px'}}><label style={labelStyle}>Matches</label><h2 style={{margin: '5px 0'}}>{clubStats.played}</h2></div>
                     <div style={{padding: '15px', background: '#0D0E12', borderRadius: '10px'}}><label style={labelStyle}>Wins</label><h2 style={{margin: '5px 0', color: '#4CAF50'}}>{clubStats.wins}</h2></div>
                     <div style={{padding: '15px', background: '#0D0E12', borderRadius: '10px'}}><label style={labelStyle}>Draws</label><h2 style={{margin: '5px 0', color: '#888'}}>{clubStats.draws}</h2></div>
@@ -447,18 +426,17 @@ function App() {
                     <div style={{padding: '15px', background: '#0D0E12', borderRadius: '10px'}}><label style={labelStyle}>Cards</label><h2 style={{margin: '5px 0'}}><span style={{color: '#FFD700'}}>{clubStats.yellows}Y</span> <span style={{color: '#F44336'}}>{clubStats.reds}R</span></h2></div>
                 </div>
             </div>
-
-            <div style={{...cardStyle, gridTemplateColumns:'1fr', padding: '25px', borderLeft: '4px solid #3A86FF'}}>
+            <div style={{...cardStyle, gridTemplateColumns:'1fr', padding: '25px', borderLeft: '4px solid #3A86FF', overflowX: 'auto'}}>
                 <div style={{display:'flex', justifyContent:'space-between', marginBottom:'20px', alignItems: 'center'}}>
-                    <div style={{display: 'flex', gap: '20px', alignItems: 'center'}}><label style={labelStyle}>LEAGUE STANDINGS</label><select style={{...inputStyle, width: 'auto', padding: '5px 15px'}} value={tableSeasonFilter} onChange={e => setTableSeasonFilter(e.target.value)}>{seasons.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
+                    <div style={{display: 'flex', gap: '20px', alignItems: 'center'}}><label style={labelStyle}>STANDINGS</label><select style={{...inputStyle, width: 'auto', padding: '5px 15px'}} value={tableSeasonFilter} onChange={e => setTableSeasonFilter(e.target.value)}>{seasons.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
                     {isEditing && <button onClick={addTableRow} style={{...primaryBtn, padding:'5px 15px', fontSize:'10px', backgroundColor:'#3A86FF', color:'white'}}>+ ADD TEAM</button>}
                 </div>
-                <table style={{width:'100%', borderCollapse:'collapse', textAlign:'left'}}>
+                <table style={{width:'100%', borderCollapse:'collapse', textAlign:'left', minWidth: '600px'}}>
                     <thead><tr style={{color:'#50535E', fontSize:'12px', borderBottom:'1px solid #252830'}}><th style={{padding:'10px'}}>#</th><th>TEAM</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th><th>PTS</th>{isEditing && <th>ACTIONS</th>}</tr></thead>
                     <tbody>
                         {sortedTable.map((row, idx) => {
-                            const isMyClub = row.name.toLowerCase() === clubInfo.name.toLowerCase();
-                            return (
+                        const isMyClub = row.name.toLowerCase() === clubInfo.name.toLowerCase();
+                        return (
                                 <tr key={row.id} style={{ borderBottom: '1px solid #1C1F26', fontSize: '14px', backgroundColor: isMyClub ? 'rgba(58, 134, 255, 0.15)' : 'transparent', borderLeft: isMyClub ? '4px solid #3A86FF' : 'none' }}>
                                     <td style={{padding:'12px', fontWeight: isMyClub ? '900' : 'normal', color: isMyClub ? '#3A86FF' : 'white'}}>{idx + 1}</td>
                                     <td style={{fontWeight: isMyClub ? '900' : 'normal', color: isMyClub ? '#3A86FF' : 'white'}}>{isEditing ? <input style={{...inputStyle, padding:'4px 8px'}} value={row.name} onChange={e => updateTableRow(row.id, 'name', e.target.value)} /> : (isMyClub ? row.name.toUpperCase() : row.name)}</td>
@@ -472,8 +450,7 @@ function App() {
                                     <td style={{fontWeight:'900', color: isMyClub ? '#3A86FF' : 'white'}}>{row.pts}</td>
                                     {isEditing && <td>{!isMyClub && <button onClick={() => deleteTableRow(row.id)} style={{background:'none', border:'none', color:'#F44336', cursor:'pointer', fontSize:'11px'}}>Delete</button>}</td>}
                                 </tr>
-                            );
-                        })}
+                        );})}
                     </tbody>
                 </table>
             </div>
@@ -485,9 +462,9 @@ function App() {
           <div style={{ maxWidth: '1000px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
               <div><h4 style={{ color: '#3A86FF', margin: 0, fontSize: '12px' }}>PLAYER IDENTITY</h4><h1>Profile details</h1></div>
-              <button onClick={() => isEditing ? handleMainSave() : setIsEditing(true)} style={{ ...primaryBtn, border: isEditing ? '1px solid #3A86FF' : '1px solid #252830', color: isEditing ? '#3A86FF' : 'white' }}>{isEditing ? '💾 SAVE TO CLOUD' : '✎ EDIT PROFILE'}</button>
+              <button onClick={() => isEditing ? handleMainSave() : setIsEditing(true)} style={{ ...primaryBtn, border: isEditing ? '1px solid #3A86FF' : '1px solid #252830', color: isEditing ? '#3A86FF' : 'white' }}>{isEditing ? '💾 SAVE' : '✎ EDIT'}</button>
             </div>
-            <div style={{ ...cardStyle, gridTemplateColumns: 'repeat(3, 1fr)', gap: '30px' }}>
+            <div className="profile-grid" style={cardStyle}>
               <ProfileField label="First Name" value={player.firstName} edit={isEditing} onChange={(v) => setPlayer({...player, firstName: v})} />
               <ProfileField label="Last Name" value={player.lastName} edit={isEditing} onChange={(v) => setPlayer({...player, lastName: v})} />
               <ProfileField label="Current Club" value={player.club} edit={isEditing} onChange={(v) => setPlayer({...player, club: v})} />
@@ -495,13 +472,13 @@ function App() {
               <div style={fieldGroup}><label style={labelStyle}>Player Level</label>{isEditing ? <select style={inputStyle} value={player.playerLevel} onChange={e => setPlayer({...player, playerLevel: e.target.value})}>{levels.map(l => <option key={l} value={l}>{l}</option>)}</select> : <p style={valueStyle}>{player.playerLevel}</p>}</div>
               <div style={fieldGroup}><label style={labelStyle}>Nationality</label>{isEditing ? <select style={inputStyle} value={player.country} onChange={e => setPlayer({...player, country: e.target.value})}>{countries.map(c => <option key={c} value={c}>{c}</option>)}</select> : <p style={valueStyle}>{player.country}</p>}</div>
               <div style={fieldGroup}><label style={labelStyle}>Position</label>{isEditing ? <select style={inputStyle} value={player.position} onChange={e => setPlayer({...player, position: e.target.value})}>{positions.map(p => <option key={p} value={p}>{p}</option>)}</select> : <p style={valueStyle}>{player.position}</p>}</div>
-              <div style={fieldGroup}><label style={labelStyle}>Jersey Number</label>{isEditing ? <input type="number" style={inputStyle} value={player.jerseyNumber} onChange={e => setPlayer({...player, jerseyNumber: e.target.value})} /> : <p style={valueStyle}>{player.jerseyNumber}</p>}</div>
+              <div style={fieldGroup}><label style={labelStyle}>Jersey</label>{isEditing ? <input type="number" style={inputStyle} value={player.jerseyNumber} onChange={e => setPlayer({...player, jerseyNumber: e.target.value})} /> : <p style={valueStyle}>{player.jerseyNumber}</p>}</div>
               <div style={fieldGroup}><label style={labelStyle}>Birth Date</label>{isEditing ? <input placeholder="DD/MM/YYYY" style={inputStyle} value={player.birthDate} onChange={e => setPlayer({...player, birthDate: formatBirthdayInput(e.target.value)})} /> : <p style={valueStyle}>{player.birthDate}</p>}</div>
-              <div style={fieldGroup}><label style={labelStyle}>Age</label><p style={valueStyle}>{calculateAge(player.birthDate)} years old</p></div>
-              <div style={fieldGroup}><label style={labelStyle}>Market Value</label>{isEditing ? <div style={{display:'flex', gap:'5px'}}><input type="number" style={inputStyle} value={player.marketValue} onChange={e => setPlayer({...player, marketValue: e.target.value})} /><select style={inputStyle} value={player.mvUnit} onChange={e => setPlayer({...player, mvUnit: e.target.value})}><option value="k">k</option><option value="M">M</option></select></div> : <p style={valueStyle}>€{player.marketValue}{player.mvUnit}</p>}</div>
+              <div style={fieldGroup}><label style={labelStyle}>Age</label><p style={valueStyle}>{calculateAge(player.birthDate)} years</p></div>
+              <div style={fieldGroup}><label style={labelStyle}>Value</label>{isEditing ? <div style={{display:'flex', gap:'5px'}}><input type="number" style={inputStyle} value={player.marketValue} onChange={e => setPlayer({...player, marketValue: e.target.value})} /><select style={inputStyle} value={player.mvUnit} onChange={e => setPlayer({...player, mvUnit: e.target.value})}><option value="k">k</option><option value="M">M</option></select></div> : <p style={valueStyle}>€{player.marketValue}{player.mvUnit}</p>}</div>
               <div style={fieldGroup}><label style={labelStyle}>Height</label>{isEditing ? <input type="number" style={inputStyle} value={player.height} onChange={e => setPlayer({...player, height: e.target.value})} /> : <p style={valueStyle}>{player.height} cm</p>}</div>
               <div style={fieldGroup}><label style={labelStyle}>Weight</label>{isEditing ? <input type="number" style={inputStyle} value={player.weight} onChange={e => setPlayer({...player, weight: e.target.value})} /> : <p style={valueStyle}>{player.weight} kg</p>}</div>
-              <div style={fieldGroup}><label style={labelStyle}>Preferred Foot</label>{isEditing ? <select style={inputStyle} value={player.preferredFoot} onChange={e => setPlayer({...player, preferredFoot: e.target.value})}><option value="Right">Right</option><option value="Left">Left</option><option value="Both">Both</option></select> : <p style={valueStyle}>{player.preferredFoot}</p>}</div>
+              <div style={fieldGroup}><label style={labelStyle}>Foot</label>{isEditing ? <select style={inputStyle} value={player.preferredFoot} onChange={e => setPlayer({...player, preferredFoot: e.target.value})}><option value="Right">Right</option><option value="Left">Left</option><option value="Both">Both</option></select> : <p style={valueStyle}>{player.preferredFoot}</p>}</div>
               <ProfileField label="Boot Model" value={player.bootModel} edit={isEditing} onChange={(v) => setPlayer({...player, bootModel: v})} />
               <div style={fieldGroup}><label style={labelStyle}>Boot Size</label>{isEditing ? <select style={inputStyle} value={player.bootSize} onChange={e => setPlayer({...player, bootSize: e.target.value})}>{bootSizes.map(s => <option key={s} value={s}>{s}</option>)}</select> : <p style={valueStyle}>{player.bootSize}</p>}</div>
             </div>
@@ -513,22 +490,22 @@ function App() {
           <div style={{ maxWidth: '1000px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
               <div><h4 style={{ color: '#3A86FF', fontSize: '12px' }}>FIXTURES</h4><h1>{editingMatchId ? 'Edit Match' : 'Match History'}</h1></div>
-              <button onClick={() => { setShowAddMatch(!showAddMatch); setEditingMatchId(null); }} style={primaryBtn}>{showAddMatch ? '✕ CLOSE' : '＋ ADD MATCH'}</button>
+              <button onClick={() => { setShowAddMatch(!showAddMatch); setEditingMatchId(null); }} style={primaryBtn}>{showAddMatch ? '✕ CLOSE' : '＋ ADD'}</button>
             </div>
             {showAddMatch && (
               <div style={{ ...cardStyle, marginBottom: '30px', gap: '20px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px' }}>
+                <div className="profile-grid">
                   <div style={fieldGroup}><label style={labelStyle}>Home Team</label><input style={inputStyle} value={newMatch.homeTeam} onChange={e => setNewMatch({...newMatch, homeTeam: e.target.value})} /></div>
                   <div style={fieldGroup}><label style={labelStyle}>Away Team</label><input style={inputStyle} value={newMatch.awayTeam} onChange={e => setNewMatch({...newMatch, awayTeam: e.target.value})} /></div>
-                  <div style={fieldGroup}><label style={labelStyle}>Score</label><input style={inputStyle} placeholder="e.g. 2-1" value={newMatch.score} onChange={e => setNewMatch({...newMatch, score: e.target.value})} /></div>
+                  <div style={fieldGroup}><label style={labelStyle}>Score</label><input style={inputStyle} placeholder="2-1" value={newMatch.score} onChange={e => setNewMatch({...newMatch, score: e.target.value})} /></div>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '15px' }}>
+                <div className="profile-grid" style={{gridTemplateColumns: 'repeat(4, 1fr)'}}>
                   <div style={fieldGroup}><label style={labelStyle}>Date</label><input style={inputStyle} placeholder="DD/MM/YYYY" value={newMatch.date} onChange={e => setNewMatch({...newMatch, date: formatBirthdayInput(e.target.value)})} /></div>
                   <div style={fieldGroup}><label style={labelStyle}>Status</label><select style={inputStyle} value={newMatch.status} onChange={e => setNewMatch({...newMatch, status: e.target.value})}><option value="finished">Finished</option><option value="upcoming">Upcoming</option></select></div>
                   <div style={fieldGroup}><label style={labelStyle}>Outcome</label><select style={inputStyle} value={newMatch.outcome} onChange={e => setNewMatch({...newMatch, outcome: e.target.value})}><option value="win">Win</option><option value="draw">Draw</option><option value="loss">Loss</option></select></div>
                   <div style={fieldGroup}><label style={labelStyle}>My Rating</label><select style={inputStyle} value={newMatch.rating} onChange={e => setNewMatch({...newMatch, rating: e.target.value})}>{[1,2,3,4,5,6,7,8,9,10].map(r => <option key={r} value={r}>{r}</option>)}</select></div>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '15px' }}>
+                <div className="stats-circles-grid">
                   <div style={fieldGroup}><label style={labelStyle}>Goals</label><input style={inputStyle} type="number" value={newMatch.myGoals} onChange={e => setNewMatch({...newMatch, myGoals: e.target.value})} /></div>
                   <div style={fieldGroup}><label style={labelStyle}>Assists</label><input style={inputStyle} type="number" value={newMatch.myAssists} onChange={e => setNewMatch({...newMatch, myAssists: e.target.value})} /></div>
                   <div style={fieldGroup}><label style={labelStyle}>Yellow</label><input style={inputStyle} type="number" value={newMatch.yellowCards} onChange={e => setNewMatch({...newMatch, yellowCards: e.target.value})} /></div>
@@ -538,14 +515,14 @@ function App() {
                 <button onClick={handleSaveMatch} style={{ ...primaryBtn, backgroundColor: '#3A86FF', color: 'white' }}>SAVE TO CLOUD</button>
               </div>
             )}
-            <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+            <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', overflowX: 'auto', paddingBottom: '10px' }}>
               {['all', 'finished', 'upcoming', 'win', 'draw', 'loss'].map(f => (
-                <button key={f} onClick={() => setMatchFilter(f)} style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #252830', backgroundColor: matchFilter === f ? '#3A86FF' : '#15171C', color: 'white', cursor: 'pointer' }}>{f.toUpperCase()}</button>
+                <button key={f} onClick={() => setMatchFilter(f)} style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #252830', backgroundColor: matchFilter === f ? '#3A86FF' : '#15171C', color: 'white', cursor: 'pointer', whiteSpace: 'nowrap' }}>{f.toUpperCase()}</button>
               ))}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {filteredMatches.map(m => (
-                <div key={m.id} style={{ ...cardStyle, padding: '20px', gridTemplateColumns: '1fr 1fr 150px' }}>
+                <div key={m.id} className="match-card">
                   <div><p style={{ ...labelStyle, color: m.outcome === 'win' ? '#4CAF50' : m.outcome === 'loss' ? '#F44336' : '#888' }}>{m.outcome?.toUpperCase()} • {m.matchType?.toUpperCase()}</p><h3>{m.homeTeam} vs {m.awayTeam}</h3><p style={{fontSize:'12px', color:'#555'}}>{m.date}</p></div>
                   <div style={{ textAlign: 'center' }}><h2>{m.score}</h2><p style={{fontSize:'11px', color:'#555'}}>{m.minutesPlayed}' Played</p></div>
                   <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: '10px' }}><div style={{display:'flex', gap:'10px', justifyContent:'flex-end'}}><button onClick={() => startEditMatch(m)} style={{background:'none', border:'none', color:'#3A86FF', fontSize:'11px', cursor:'pointer', fontWeight:'bold'}}>Edit</button><button onClick={() => deleteMatch(m.id)} style={{background:'none', border:'none', color:'#444', fontSize:'11px', cursor:'pointer'}}>Delete</button></div></div>
@@ -557,14 +534,14 @@ function App() {
 
         {/* STATISTICS SECTION */}
         {activeTab === 'stats' && (
-          <div style={{ maxWidth: '1000px' }}>
+           <div style={{ maxWidth: '1000px' }}>
              <h4 style={{ color: '#3A86FF', fontSize: '12px' }}>PERFORMANCE</h4><h1>Career Statistics</h1>
-             <div style={{...cardStyle, gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px', marginBottom: '30px', padding: '20px'}}>
+             <div className="profile-grid" style={{...cardStyle, marginBottom: '30px', padding: '20px'}}>
                 <div style={fieldGroup}><label style={labelStyle}>Season</label><select style={inputStyle} value={statsFilters.season} onChange={e => setStatsFilters({...statsFilters, season: e.target.value})}><option value="all">All Seasons</option>{seasons.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
                 <div style={fieldGroup}><label style={labelStyle}>Club</label><select style={inputStyle} value={statsFilters.club} onChange={e => setStatsFilters({...statsFilters, club: e.target.value})}><option value="all">All Clubs</option>{uniqueClubs.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
                 <div style={fieldGroup}><label style={labelStyle}>Last X Matches</label><input type="number" style={inputStyle} value={statsFilters.lastMatches} onChange={e => setStatsFilters({...statsFilters, lastMatches: e.target.value})} /></div>
              </div>
-             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px' }}>
+             <div className="dashboard-grid">
                 <div style={cardStyle}><label style={labelStyle}>Matches</label><h2 style={{margin:0}}>{stats.played}</h2></div>
                 <div style={cardStyle}><label style={labelStyle}>Goals</label><h2 style={{margin:0}}>{stats.goals}</h2></div>
                 <div style={cardStyle}><label style={labelStyle}>Assists</label><h2 style={{margin:0}}>{stats.assists}</h2></div>
@@ -579,19 +556,17 @@ function App() {
             <h4 style={{ color: '#3A86FF', fontSize: '12px' }}>SETTINGS</h4>
             <h1>My Account</h1>
             <div style={{ ...cardStyle, marginTop: '20px', gap: '25px' }}>
-                <div style={fieldGroup}><label style={labelStyle}>Logged in as</label><p style={{fontSize:'18px', margin:0}}>{user.email}</p></div>
+                <div style={fieldGroup}><label style={labelStyle}>Logged in as</label><p style={{fontSize:'18px', margin:0, wordBreak: 'break-all'}}>{user.email}</p></div>
                 <div style={{padding:'15px', background:'rgba(76, 175, 80, 0.1)', borderRadius:'10px', border:'1px solid rgba(76,175,80,0.2)'}}>
-                    <p style={{color:'#4CAF50', margin:0, fontSize:'14px', display:'flex', alignItems:'center', gap:'10px'}}>
-                        <span>●</span> Cloud Synchronization Active
-                    </p>
-                    <p style={{fontSize:'12px', color:'#888', marginTop:'5px'}}>Svi tvoji podaci su bezbjedno spremljeni na Firebase server.</p>
+                    <p style={{color:'#4CAF50', margin:0, fontSize:'14px', display:'flex', alignItems:'center', gap:'10px'}}><span>●</span> Cloud Sync Active</p>
+                    <p style={{fontSize:'12px', color:'#888', marginTop:'5px'}}>Svi tvoji podaci su bezbjedno spremljeni na Firebase.</p>
                 </div>
-                <button onClick={() => signOut(auth)} style={{ ...primaryBtn, backgroundColor: '#F44336', color: 'white', border: 'none', marginTop:'15px' }}>LOGOUT FROM ACCOUNT</button>
+                <button onClick={() => signOut(auth)} style={{ ...primaryBtn, backgroundColor: '#F44336', color: 'white', border: 'none', marginTop:'15px' }}>LOGOUT</button>
             </div>
           </div>
         )}
 
-        {/* PLACEHOLDERS ZA TVOJE OSTALE Tremove */}
+        {/* PLACEHOLDERS */}
         {(activeTab === 'goals' || activeTab === 'training' || activeTab === 'injuries' || activeTab === 'seasons' || activeTab === 'analyses' || activeTab === 'awards' || activeTab === 'transfers' || activeTab === 'sponsors' || activeTab === 'gallery' || activeTab === 'friends' || activeTab === 'settings' || activeTab === 'support') && (
             <div style={{ maxWidth: '1000px', textAlign: 'center', marginTop: '100px' }}>
                 <h1 style={{textTransform: 'uppercase'}}>{activeTab.replace('_', ' ')}</h1>
@@ -600,6 +575,43 @@ function App() {
         )}
 
       </div>
+
+      {/* CSS ZA RESPONSIVE DIZAJN */}
+      <style>{`
+        .app-container { display: flex; min-height: 100vh; background-color: #0D0E12; color: #E0E0E0; font-family: "Inter", sans-serif; }
+        .sidebar { width: 260px; background-color: #15171C; padding: 30px 20px; border-right: 1px solid #252830; display: flex; flexDirection: column; }
+        .main-content { flex: 1; padding: 40px 60px; overflow-y: auto; }
+        .mobile-nav { display: none; }
+        
+        /* GRID LAYOUTS */
+        .dashboard-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 25px; margin-top: 30px; }
+        .profile-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; }
+        .stats-filter-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; background-color: #1C1F26; padding: 20px; border-radius: 12px; }
+        .stats-circles-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; text-align: center; }
+        .match-card { display: grid; grid-template-columns: 1fr 1fr 150px; background-color: #15171C; padding: 20px; border-radius: 20px; border: 1px solid #252830; }
+
+        /* TELEFON PODEŠAVANJA (Responsive) */
+        @media (max-width: 1024px) {
+          .dashboard-grid { grid-template-columns: repeat(2, 1fr); }
+          .profile-grid { grid-template-columns: repeat(2, 1fr); }
+          .stats-filter-grid { grid-template-columns: repeat(2, 1fr); }
+          .stats-circles-grid { grid-template-columns: repeat(3, 1fr); }
+        }
+
+        @media (max-width: 768px) {
+          .sidebar { display: none; }
+          .main-content { padding: 20px 15px 100px 15px; }
+          .mobile-nav { display: flex; position: fixed; bottom: 0; left: 0; right: 0; background: #15171C; border-top: 1px solid #252830; padding: 15px; justify-content: space-around; z-index: 1000; }
+          .mobile-nav button { background: none; border: none; font-size: 24px; cursor: pointer; }
+          .dashboard-grid { grid-template-columns: 1fr; }
+          .profile-grid { grid-template-columns: 1fr; }
+          .stats-filter-grid { grid-template-columns: 1fr; }
+          .stats-circles-grid { grid-template-columns: repeat(2, 1fr); }
+          .match-card { grid-template-columns: 1fr; gap: 15px; text-align: center; }
+          .match-card div { text-align: center !important; }
+          h1 { fontSize: 24px !important; }
+        }
+      `}</style>
     </div>
   )
 }
@@ -621,7 +633,7 @@ function ProfileField({ label, value, edit, onChange }) {
   );
 }
 
-const cardStyle = { backgroundColor: '#15171C', padding: '40px', borderRadius: '20px', border: '1px solid #252830', display: 'grid' };
+const cardStyle = { backgroundColor: '#15171C', padding: '25px', borderRadius: '20px', border: '1px solid #252830', display: 'grid' };
 const fieldGroup = { display: 'flex', flexDirection: 'column', gap: '8px' };
 const labelStyle = { color: '#50535E', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase' };
 const valueStyle = { fontSize: '16px', color: '#FFFFFF', margin: 0 };
